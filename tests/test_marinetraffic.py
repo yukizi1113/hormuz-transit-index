@@ -40,3 +40,31 @@ def test_resolve_provider_prefers_marinetraffic() -> None:
     )
 
     assert _resolve_provider(settings, None) == "marinetraffic"
+
+
+def test_resolve_provider_falls_back_without_marinetraffic_key() -> None:
+    settings = Settings.load()
+    settings = settings.__class__(
+        **{
+            **settings.__dict__,
+            "ais_provider": "marinetraffic",
+            "marinetraffic_api_key": None,
+            "aisstream_api_key": "ais-key",
+        }
+    )
+
+    assert _resolve_provider(settings, None) == "aisstream"
+
+
+def test_resolve_provider_falls_back_to_replay_without_any_live_key() -> None:
+    settings = Settings.load()
+    settings = settings.__class__(
+        **{
+            **settings.__dict__,
+            "ais_provider": "marinetraffic",
+            "marinetraffic_api_key": None,
+            "aisstream_api_key": None,
+        }
+    )
+
+    assert _resolve_provider(settings, None) == "replay"

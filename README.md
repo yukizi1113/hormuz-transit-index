@@ -87,6 +87,7 @@ curl http://127.0.0.1:8010/transits/recent?limit=20
 - `--provider replay`: ローカル JSONL を再生
 
 `MarineTraffic` は公式 docs の `Vessel Positions in an Area of Interest` 前提で、`jsono`、`timespan`、`limit`、`cursor` を利用する実装です。
+`MARINETRAFFIC_API_KEY` が未設定でもアプリは停止せず、従来ロジックとして `AISStream`、さらに未設定なら `replay` に自動フォールバックします。
 
 ## 指数の定義
 

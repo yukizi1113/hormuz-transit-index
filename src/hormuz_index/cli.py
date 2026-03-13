@@ -14,13 +14,23 @@ from hormuz_index.indexer import Indexer
 from hormuz_index.storage import Database
 
 
+def _fallback_provider_without_marinetraffic(settings: Settings) -> str:
+    if settings.aisstream_api_key:
+        return "aisstream"
+    return "replay"
+
+
 def _resolve_provider(settings: Settings, explicit: str | None) -> str:
     provider = explicit or settings.ais_provider
-    if provider == "auto":
+    if provider in {"auto", "live"}:
         if settings.marinetraffic_api_key:
             return "marinetraffic"
         if settings.aisstream_api_key:
             return "aisstream"
+        return "replay"
+    if provider == "marinetraffic" and not settings.marinetraffic_api_key:
+        return _fallback_provider_without_marinetraffic(settings)
+    if provider == "aisstream" and not settings.aisstream_api_key:
         return "replay"
     return provider
 
