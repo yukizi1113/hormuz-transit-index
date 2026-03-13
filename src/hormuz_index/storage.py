@@ -110,6 +110,17 @@ class Database:
 
     def insert_position(self, event: PositionEvent) -> None:
         with self._connect() as conn:
+            if self._raw_event_exists(
+                conn,
+                mmsi=event.mmsi,
+                event_kind="position",
+                observed_at_ts=event.observed_at_ts,
+                provider=event.provider,
+                latitude=event.latitude,
+                longitude=event.longitude,
+            ):
+                self._upsert_registry(conn, event.mmsi, event.vessel_name, event.ship_type, event.observed_at, event.provider)
+                return
             conn.execute(
                 """
                 INSERT INTO raw_events (
@@ -135,6 +146,15 @@ class Database:
 
     def insert_static(self, event: StaticEvent) -> None:
         with self._connect() as conn:
+            if self._raw_event_exists(
+                conn,
+                mmsi=event.mmsi,
+                event_kind="static",
+                observed_at_ts=event.observed_at_ts,
+                provider=event.provider,
+            ):
+                self._upsert_registry(conn, event.mmsi, event.vessel_name, event.ship_type, event.observed_at, event.provider)
+                return
             conn.execute(
                 """
                 INSERT INTO raw_events (
@@ -153,6 +173,39 @@ class Database:
                 ),
             )
             self._upsert_registry(conn, event.mmsi, event.vessel_name, event.ship_type, event.observed_at, event.provider)
+
+    def _raw_event_exists(
+        self,
+        conn: sqlite3.Connection,
+        mmsi: int,
+        event_kind: str,
+        observed_at_ts: int,
+        provider: str,
+        latitude: float | None = None,
+        longitude: float | None = None,
+    ) -> bool:
+        if latitude is None or longitude is None:
+            row = conn.execute(
+                """
+                SELECT 1
+                FROM raw_events
+                WHERE mmsi = ? AND event_kind = ? AND observed_at_ts = ? AND provider = ?
+                LIMIT 1
+                """,
+                (mmsi, event_kind, observed_at_ts, provider),
+            ).fetchone()
+            return row is not None
+        row = conn.execute(
+            """
+            SELECT 1
+            FROM raw_events
+            WHERE mmsi = ? AND event_kind = ? AND observed_at_ts = ? AND provider = ?
+              AND latitude = ? AND longitude = ?
+            LIMIT 1
+            """,
+            (mmsi, event_kind, observed_at_ts, provider, latitude, longitude),
+        ).fetchone()
+        return row is not None
 
     def _upsert_registry(
         self,

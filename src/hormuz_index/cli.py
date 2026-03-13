@@ -8,7 +8,7 @@ import uvicorn
 
 from hormuz_index.alerts import AlertService
 from hormuz_index.api import create_app
-from hormuz_index.collector import run_live_collector, run_replay_collector
+from hormuz_index.collector import run_aisstream_collector, run_live_collector, run_marinetraffic_collector, run_replay_collector
 from hormuz_index.config import Settings
 from hormuz_index.indexer import Indexer
 from hormuz_index.storage import Database
@@ -17,7 +17,11 @@ from hormuz_index.storage import Database
 def _resolve_provider(settings: Settings, explicit: str | None) -> str:
     provider = explicit or settings.ais_provider
     if provider == "auto":
-        return "live" if settings.aisstream_api_key else "replay"
+        if settings.marinetraffic_api_key:
+            return "marinetraffic"
+        if settings.aisstream_api_key:
+            return "aisstream"
+        return "replay"
     return provider
 
 
@@ -26,7 +30,11 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     collect_parser = subparsers.add_parser("run-collector", help="Run AIS collector")
-    collect_parser.add_argument("--provider", choices=["auto", "live", "replay"], default=None)
+    collect_parser.add_argument(
+        "--provider",
+        choices=["auto", "marinetraffic", "aisstream", "live", "replay"],
+        default=None,
+    )
     collect_parser.add_argument("--replay-sleep-sec", type=float, default=0.0)
 
     subparsers.add_parser("run-indexer-once", help="Compute one index point")
@@ -42,8 +50,13 @@ def main() -> None:
 
     if args.command == "run-collector":
         provider = _resolve_provider(settings, args.provider)
-        if provider == "live":
-            asyncio.run(run_live_collector(settings, db))
+        if provider in {"live", "marinetraffic"}:
+            if provider == "marinetraffic":
+                asyncio.run(run_marinetraffic_collector(settings, db))
+            else:
+                asyncio.run(run_live_collector(settings, db))
+        elif provider == "aisstream":
+            asyncio.run(run_aisstream_collector(settings, db))
         else:
             asyncio.run(run_replay_collector(settings, db, sleep_sec=args.replay_sleep_sec))
         return

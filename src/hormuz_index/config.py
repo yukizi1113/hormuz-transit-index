@@ -37,6 +37,16 @@ class Settings:
     database_url: str
     database_path: Path
     ais_provider: str
+    marinetraffic_api_key: str | None
+    marinetraffic_base_url: str
+    marinetraffic_endpoint: str
+    marinetraffic_api_version: int
+    marinetraffic_timespan_min: int
+    marinetraffic_limit: int
+    marinetraffic_poll_sec: int
+    marinetraffic_timeout_sec: float
+    marinetraffic_max_pages_per_poll: int
+    marinetraffic_vesseltype_ids: str | None
     aisstream_api_key: str | None
     aisstream_ws_url: str
     ais_replay_file: Path
@@ -71,6 +81,14 @@ class Settings:
             ]
         ]
 
+    @property
+    def marinetraffic_url(self) -> str:
+        return (
+            f"{self.marinetraffic_base_url.rstrip('/')}/"
+            f"{self.marinetraffic_endpoint.strip('/')}/"
+            f"{self.marinetraffic_api_key}"
+        )
+
     @classmethod
     def load(cls) -> "Settings":
         database_url = os.getenv("DATABASE_URL", "sqlite:///./data/hormuz_index.db")
@@ -82,6 +100,16 @@ class Settings:
             database_url=database_url,
             database_path=_db_path_from_url(database_url),
             ais_provider=os.getenv("AIS_PROVIDER", "auto"),
+            marinetraffic_api_key=os.getenv("MARINETRAFFIC_API_KEY"),
+            marinetraffic_base_url=os.getenv("MARINETRAFFIC_BASE_URL", "https://services.marinetraffic.com/api"),
+            marinetraffic_endpoint=os.getenv("MARINETRAFFIC_ENDPOINT", "exportvessels-custom-area"),
+            marinetraffic_api_version=int(os.getenv("MARINETRAFFIC_API_VERSION", "2")),
+            marinetraffic_timespan_min=int(os.getenv("MARINETRAFFIC_TIMESPAN_MIN", "10")),
+            marinetraffic_limit=int(os.getenv("MARINETRAFFIC_LIMIT", "2000")),
+            marinetraffic_poll_sec=int(os.getenv("MARINETRAFFIC_POLL_SEC", "300")),
+            marinetraffic_timeout_sec=float(os.getenv("MARINETRAFFIC_TIMEOUT_SEC", "30")),
+            marinetraffic_max_pages_per_poll=int(os.getenv("MARINETRAFFIC_MAX_PAGES_PER_POLL", "3")),
+            marinetraffic_vesseltype_ids=os.getenv("MARINETRAFFIC_VESSELTYPE_IDS"),
             aisstream_api_key=os.getenv("AISSTREAM_API_KEY"),
             aisstream_ws_url=os.getenv("AISSTREAM_WS_URL", "wss://stream.aisstream.io/v0/stream"),
             ais_replay_file=Path(os.getenv("AIS_REPLAY_FILE", "./sample_data/ais_sample.jsonl")),
